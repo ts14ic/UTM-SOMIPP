@@ -3,7 +3,7 @@ struc dstring content {
     .len = $ - .str
 }
 
-macro PRINT_STRING str, len, row, col, attrs {
+macro PRINT_STRING str, len, col, row, attrs {
     pusha
     mov al, 1
     mov bh, 0
@@ -20,12 +20,14 @@ macro PRINT_STRING str, len, row, col, attrs {
 }
 
 macro FILL_BOX x0, y0, x1, y1, color {
+    pusha
     mov al, color
     mov cx, x0 ; x iter
     mov di, x1 ; to di
     mov dx, y0 ; y iter from self
     mov bx, y1 ; to bx
     call fill_box
+    popa
 }
 
 ; ax - color and function
@@ -146,26 +148,21 @@ draw_box:
 
 
 wait_ms:
-    push bx
-    push cx
-    push dx
     mov bx, 1000
     mul bx ; result in dx:ax
     mov cx, dx
     mov dx, ax
     mov ah, 86h
     int 15h ; reads cx:dx
-    pop dx
-    pop cx
-    pop bx
     ret
     
 macro WAIT_FOR msecs {
-    push ax
+    pusha
     mov ax, msecs
     call wait_ms
-    pop ax
+    popa
 }
+
 
 COLOR_BLACK   = 0x0
 COLOR_DKBLUE  = 0x1
@@ -184,8 +181,10 @@ COLOR_PINK    = 0xD
 COLOR_YELLOW  = 0xE
 COLOR_WHITE   = 0xF
 
-SCAN_UP     = 0x48
-SCAN_LEFT   = 0x4B
-SCAN_RIGHT  = 0x4D
-SCAN_DOWN   = 0x50
-ASCII_ENTER = 0x1C
+
+SCAN_UP      = 0x48
+SCAN_LEFT    = 0x4B
+SCAN_RIGHT   = 0x4D
+SCAN_DOWN    = 0x50
+SCAN_ENTER   = 0x1C
+SCAN_ESCAPE  = 0x01
