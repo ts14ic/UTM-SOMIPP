@@ -83,20 +83,19 @@ draw_select:
     ret
 
 
+clear_screen:
+    popa
+    mov ax, 0x700
+    mov bh, 0
+    int 0x10
+    popa
+    ret
+
 inscreen:
     .x0 = 110
     .y0 = 10
     .x1 = 310
     .y1 = 190
-
-
-clear_screen:
-    popa
-    mov ax, 0x700
-    mov bh, 0
-    popa
-    ret
-
 
 draw_gui: 
     DRAW_BOX inscreen.x0, inscreen.y0, inscreen.x1, inscreen.y1, COLOR_RED
@@ -133,10 +132,9 @@ select_enter:
     jmp .end
 @@:
     cmp ax, ITEM_CALC
-    jne @f
+    jne .end
     call control_loop_calc
     jmp .end
-@@:
 .end:    
     popa
     ret
@@ -145,6 +143,9 @@ select_enter:
 START: 
     mov ax, 0x13
     int 0x10       ; set 16 bit 320x200
+
+    mov ax, 0x7000    
+    mov ss, ax
 
     call draw_gui
 control_loop_main: 
@@ -168,9 +169,8 @@ control_loop_main:
     jmp .end
 @@:
     cmp ah, SCAN_RIGHT
-    jne @f
+    jne .end
     call select_enter
-@@:
 .end:
     jmp control_loop_main
 
@@ -196,10 +196,48 @@ control_loop_about:
 
 .end:
     call clear_screen
+    
     ret
 
 
+beep dstring 'Beeping'
+
 control_loop_beep:
+    DRAW_BOX (inscreen.x0 - 1), (inscreen.y0 - 1), (inscreen.x1 + 1), (inscreen.y1 + 1), COLOR_WHITE
+    
+    PRINT_STRING beep.str, beep.len, 23, 11, COLOR_YELLOW
+    
+    ; printing bel fails
+    mov ah, 0xE
+    mov al, 7
+    int 0x10
+    
+    ; talking directly to speaker port fails
+    mov al, 0xB6
+    out 0x43, al
+    mov ax, 0x4A9
+    out 0x42, al
+    mov al, ah
+    out 0x42, al
+    
+    in al, 0x61
+    or al, 11b
+    out 0x61, al
+    
+.getkey:    
+    mov ah, 0
+    int 0x16
+    cmp ah, SCAN_ESCAPE
+    je .end
+    cmp ah, SCAN_LEFT
+    jne .getkey
+
+.end:
+    in  al, 0x61
+    or  al, 11111100b
+    out 0x61, al
+
+    call clear_screen
     ret
 
 
