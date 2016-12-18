@@ -19,6 +19,25 @@ macro PRINT_STRING str, len, col, row, attrs {
     popa
 }
 
+
+macro PRINT_CHAR char, col, row, color {
+    pusha
+    mov cl, char
+    mov ch, color
+    
+    mov dh, row
+    mov dl, col
+    mov bh, 0
+    mov ah, 2
+    int 0x10
+    mov ah, 0xE
+    mov al, cl
+    mov bl, ch
+    int 0x10
+    popa
+}
+
+
 macro FILL_BOX x0, y0, x1, y1, color {
     pusha
     mov al, color

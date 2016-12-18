@@ -131,6 +131,16 @@ select_enter:
     call control_loop_beep
     jmp .end
 @@:
+    cmp ax, ITEM_TIME
+    jne @f
+    call control_loop_time
+    jmp .end
+@@:
+    cmp ax, ITEM_DRAW
+    jne @f
+    call control_loop_draw
+    jmp .end
+@@:
     cmp ax, ITEM_CALC
     jne .end
     call control_loop_calc
@@ -140,13 +150,13 @@ select_enter:
     ret
 
 
-START: 
+START:
     mov ax, 0x13
     int 0x10       ; set 16 bit 320x200
-
-    mov ax, 0x7000    
+    
+    mov ax, 0x7000
     mov ss, ax
-
+    
     call draw_gui
 control_loop_main: 
     call draw_select
@@ -242,4 +252,65 @@ control_loop_beep:
 
 
 control_loop_calc:
+    ret
+
+control_loop_draw:
+    ret
+
+
+TIME_X = 22
+TIME_Y = 10
+current_time dstring 'Current time:'
+
+control_loop_time:
+    DRAW_BOX (inscreen.x0 - 1), (inscreen.y0 - 1), (inscreen.x1 + 1), (inscreen.y1 + 1), COLOR_WHITE
+    
+    PRINT_STRING current_time.str, current_time.len, (TIME_X - 2), (TIME_Y - 1), COLOR_LTBLUE
+    
+print_time:
+    mov ah, 0
+    int 0x1A  ; cx hours, dx ...
+    
+    mov ax, cx
+    mov bl, 10
+    div bl
+    or ax, 0x3030
+    PRINT_CHAR al, (TIME_X), TIME_Y, COLOR_LTBLUE
+    PRINT_CHAR ah, (TIME_X + 1), TIME_Y, COLOR_LTBLUE
+    
+    PRINT_CHAR ':', (TIME_X + 2), TIME_Y, COLOR_WHITE
+    mov ax, dx
+    mov dx, 0
+    mov bx, 0x444
+    div bx
+    mov bl, 10
+    div bl
+    or ax, 0x3030
+    PRINT_CHAR al, (TIME_X + 3), TIME_Y, COLOR_BLUE
+    PRINT_CHAR ah, (TIME_X + 4), TIME_Y, COLOR_BLUE
+    
+    PRINT_CHAR ':', (TIME_X + 5), TIME_Y, COLOR_WHITE
+    mov ax, dx
+    mov dx, 0
+    mov bx, 18
+    div bx
+    mov bl, 10
+    div bl
+    or ax, 0x3030
+    PRINT_CHAR al, (TIME_X + 6), TIME_Y, COLOR_DKBLUE
+    PRINT_CHAR ah, (TIME_X + 7), TIME_Y, COLOR_DKBLUE
+    
+.getkey:
+    mov ah, 1
+    int 0x16
+    jz print_time    
+    mov ah, 0
+    int 0x16
+    cmp ah, SCAN_ESCAPE
+    je .end
+    cmp ah, SCAN_LEFT
+    jne .getkey
+
+.end:
+    call clear_screen
     ret
