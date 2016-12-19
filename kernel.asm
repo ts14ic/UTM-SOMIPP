@@ -87,10 +87,12 @@ draw_selector:
 
 clear_screen:
     pusha
-    mov ax, 0x0700 ; scroll whole window down
-    mov bh, 0x0   ; white on black
-    mov cx, 0x0000 ; 0x0 upper left
-    mov dx, 0x184f ; 24 x 79 bottom right
+;    mov ax, 0x0600 ; scroll whole window down
+;    mov bh, 0x0   ; white on black
+;    mov cx, 0x0000 ; 0x0 upper left
+;    mov dx, 0x184f ; 24 x 79 bottom right
+;    int 0x10
+    mov ax, 0x13
     int 0x10
     popa
     ret
@@ -211,7 +213,6 @@ control_loop_about:
 
 .end:
     call clear_screen
-    
     ret
 
 
@@ -571,5 +572,160 @@ draw_acute_triangle:
     ret
     
 
-control_loop_calc:
+msg_digit1 dstring 'Enter digit 1'
+msg_digit2 dstring 'Enter digit 2'
+msg_op     dstring 'Enter +-/* op'
+msg_result dstring 'Calculated!  '
+msg_empres dstring '     '
+
+calcs:
+    .dig1    db 0
+    .dig2    db 0
+    .res     db 0
+    .op      db 0
+
+control_loop_calc:    
+    call draw_inscreen_selection
+
+.getkey0:
+    PRINT_STRING msg_digit1, msg_digit1.len, 20, 3, COLOR_WHITE
+    PRINT_CHAR '_', 20, 10, COLOR_WHITE    
+    mov ah, 0
+    int 0x16
+    cmp ah, SCAN_ESCAPE
+    jne @f
+    jmp .end
+@@: cmp ah, SCAN_LEFT
+    jne @f
+    jmp .end
+@@: cmp al, '0'
+    jl .getkey0
+    cmp al, '9'
+    jg .getkey0
+    PRINT_CHAR al, 20, 10, COLOR_WHITE
+    mov [calcs.dig1], al
+    
+    
+.getkey1:    
+    PRINT_STRING msg_op, msg_op.len, 20, 3, COLOR_WHITE
+    PRINT_CHAR '_', 22, 10, COLOR_WHITE
+    mov ah, 0
+    int 0x16
+    cmp ah, SCAN_ESCAPE
+    jne @f
+    jmp .end
+@@: cmp ah, SCAN_LEFT
+    jne @f
+    jmp .end
+@@: cmp ah, SCAN_BACKSPACE
+    jne @f
+    PRINT_CHAR ' ', 22, 10, COLOR_WHITE
+    jmp .getkey0
+@@: cmp al, '+'
+    je .print_op
+    cmp al, '-'
+    je .print_op
+    cmp al, '/'
+    je .print_op
+    cmp al, '*'
+    je .print_op
+    jmp .getkey1
+.print_op:
+    PRINT_CHAR al, 22, 10, COLOR_WHITE
+    mov [calcs.op], al
+     
+.getkey2:
+    PRINT_STRING msg_digit2, msg_digit2.len, 20, 3, COLOR_WHITE
+    PRINT_CHAR '_', 24, 10, COLOR_WHITE    
+    mov ah, 0
+    int 0x16
+    cmp ah, SCAN_ESCAPE
+    jne @f
+    jmp .end
+@@: cmp ah, SCAN_LEFT
+    jne @f
+    jmp .end
+@@: cmp ah, SCAN_BACKSPACE
+    jne @f
+    PRINT_CHAR ' ', 24, 10, COLOR_WHITE
+    jmp .getkey1
+@@: cmp al, '0'
+    jl .getkey2
+    cmp al, '9'
+    jg .getkey2
+    PRINT_CHAR al, 24, 10, COLOR_WHITE
+    mov [calcs.dig2], al
+    
+    PRINT_STRING msg_result, msg_result.len, 20, 3, COLOR_WHITE 
+    PRINT_CHAR '=', 26, 10, COLOR_WHITE
+
+    
+    mov cl, [calcs.op]
+    
+    cmp cl, '+'
+    jne @f
+    mov al, [calcs.dig1]
+    xor al, 0x30
+    mov bl, [calcs.dig2]
+    xor bl, 0x30
+    add al, bl
+    mov [calcs.res], al
+    jmp .calc_end
+@@: cmp cl, '-'
+    jne @f
+    mov al, [calcs.dig1]
+    mov bl, [calcs.dig2]
+    sub al, bl
+    mov [calcs.res], al
+    jmp .calc_end
+@@: cmp cl, '*'
+    jne @f
+    mov al, [calcs.dig1]
+    xor al, 0x30
+    mov bl, [calcs.dig2]
+    xor bl, 0x30
+    mul bl
+    mov [calcs.res], al
+    jmp .calc_end
+@@: cmp cl, '/'
+    jne .calc_end
+    mov ah, 0
+    mov al, [calcs.dig1]
+    xor al, 0x30
+    mov bl, [calcs.dig2]
+    xor bl, 0x30
+    div bl
+    mov [calcs.res], al
+.calc_end:
+    
+    
+    mov ah, 0
+    mov al, [calcs.res]
+    test al, al
+    jns .print_res
+    PRINT_CHAR '-', 28, 10, COLOR_WHITE
+    neg al
+.print_res:    
+    mov bl, 10
+    div bl
+    or ax, 0x3030
+    PRINT_CHAR al, 29, 10, COLOR_WHITE
+    PRINT_CHAR ah, 30, 10, COLOR_WHITE
+    
+    
+.getkey3:    
+    mov ah, 0
+    int 0x16    
+    cmp ah, SCAN_ESCAPE
+    jne @f
+    jmp .end
+@@: cmp ah, SCAN_BACKSPACE
+    jne @f
+    PRINT_STRING msg_empres, msg_empres.len, 26, 10, COLOR_WHITE
+    jmp .getkey2
+@@: cmp ah, SCAN_LEFT
+    jne .getkey3    
+    
+.end:
+    call clear_screen
     ret
