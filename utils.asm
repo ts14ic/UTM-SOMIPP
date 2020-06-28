@@ -208,3 +208,5 @@ SCAN_DOWN      = 0x50
 SCAN_ENTER     = 0x1C
 SCAN_ESCAPE    = 0x01
 SCAN_BACKSPACE = 0x0E
+SCAN_F1        = 0x06
+SCAN_TAB       = 0x0e
